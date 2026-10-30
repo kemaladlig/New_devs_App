@@ -5,6 +5,7 @@ import { authOptimizer } from '../utils/authOptimizer';
 import { sessionRecovery } from '../utils/sessionRecovery';
 import { sessionPersistenceManager } from '../utils/SessionPersistenceManager';
 import { extractTenantFromSession } from '../utils/jwtUtils';
+import { SecureAPI } from '../lib/secureApi';
 
 // Global logout flag to prevent session recovery during logout
 if (typeof window !== 'undefined') {
@@ -211,6 +212,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         if (session) {
           console.log('🔍 [AuthContext] Session User Email:', session.user.email);
+          SecureAPI.setAccessToken(session.access_token);
           const enrichedUser = enrichUserWithTenant(session);
           console.log('🔍 [AuthContext] Enriched User:', enrichedUser ? 'SUCCESS' : 'NULL');
           setUser(enrichedUser);
@@ -219,6 +221,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           authOptimizer.storeSession(session);
         } else {
           console.log('🔍 [AuthContext] Session is NULL -> Logging out');
+          SecureAPI.setAccessToken(null);
           setUser(null);
           setIsAuthenticated(false);
           authOptimizer.clearSession();

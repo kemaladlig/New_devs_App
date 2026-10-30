@@ -21,6 +21,10 @@ interface AuthSession {
 interface AuthResponse {
   user: AuthUser | null;
   session: AuthSession | null;
+  data: {
+    user: AuthUser | null;
+    session: AuthSession | null;
+  };
   error: Error | null;
 }
 
@@ -107,6 +111,10 @@ class LocalAuthClient {
       return {
         user: data.user,
         session: session,
+        data: {
+          user: data.user,
+          session: session,
+        },
         error: null,
       };
     } catch (error: any) {
@@ -114,6 +122,10 @@ class LocalAuthClient {
       return {
         user: null,
         session: null,
+        data: {
+          user: null,
+          session: null,
+        },
         error: error,
       };
     }
@@ -170,11 +182,11 @@ class LocalAuthClient {
     return { data: { session: null } };
   }
 
-  async getUser(token?: string): Promise<{ user: AuthUser | null }> {
+  async getUser(token?: string): Promise<{ user: AuthUser | null; data: { user: AuthUser | null }; error: Error | null }> {
     const tokenToUse = token || this.session?.access_token;
 
     if (!tokenToUse) {
-      return { user: null };
+      return { user: null, data: { user: null }, error: new Error('No token') };
     }
 
     try {
@@ -186,13 +198,13 @@ class LocalAuthClient {
 
       if (response.ok) {
         const userData = await response.json();
-        return { user: userData };
+        return { user: userData, data: { user: userData }, error: null };
       } else {
-        return { user: null };
+        return { user: null, data: { user: null }, error: new Error(`HTTP ${response.status}`) };
       }
     } catch (error) {
       console.error('[LocalAuth] Get user failed:', error);
-      return { user: null };
+      return { user: null, data: { user: null }, error: error as Error };
     }
   }
 

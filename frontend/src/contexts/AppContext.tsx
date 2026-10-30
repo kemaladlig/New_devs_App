@@ -73,7 +73,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       : (authContext.isAuthenticated ? 'authenticated' : 'unauthenticated'),
     permissions: [] as Array<{ section: string; action: string }>,
     modules: [] as string[],
-    tenantId: authContext.user?.user_metadata?.tenant_id || null,
+    tenantId: authContext.user?.tenant_id || authContext.user?.app_metadata?.tenant_id || authContext.user?.user_metadata?.tenant_id || null,
     companySettings: null,
     tenant: null,
     error: null,

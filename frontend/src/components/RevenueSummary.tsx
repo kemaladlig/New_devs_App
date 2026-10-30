@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { SecureAPI } from '../lib/secureApi';
+import { useAuth } from '../contexts/AuthContext.new';
 
 interface RevenueData {
     property_id: string;
+    property_name?: string;
+    timezone?: string;
     total_revenue: number;
     currency: string;
     reservations_count: number;
@@ -15,33 +18,43 @@ interface RevenueSummaryProps {
 }
 
 export const RevenueSummary: React.FC<RevenueSummaryProps> = ({ propertyId = 'prop-001', debugTenant, showRaw }) => {
+    const { user } = useAuth();
     const [data, setData] = useState<RevenueData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    const activeTenant = debugTenant || 'candidate';
-
     useEffect(() => {
+        let cancelled = false;
+
         const fetchRevenue = async () => {
             setLoading(true);
+            setError('');
             try {
-                // Use SecureAPI to handle authentication automatically
-                // We pass the simulatedTenant option which SecureAPI will attach as a header
                 const response = await SecureAPI.getDashboardSummary(propertyId, {
-                    simulatedTenant: activeTenant,
+                    simulatedTenant: debugTenant,
                     timestamp: Date.now()
                 });
-                setData(response);
+                if (!cancelled) {
+                    setData(response);
+                }
             } catch (err) {
-                setError('Failed to load revenue data');
+                if (!cancelled) {
+                    setError('Failed to load revenue data');
+                }
                 console.error(err);
             } finally {
-                setLoading(false);
+                if (!cancelled) {
+                    setLoading(false);
+                }
             }
         };
 
         fetchRevenue();
-    }, [propertyId, activeTenant]);
+
+        return () => {
+            cancelled = true;
+        };
+    }, [propertyId, debugTenant, user?.id, user?.tenant_id]);
 
     if (loading) {
         return (
@@ -75,7 +88,9 @@ export const RevenueSummary: React.FC<RevenueSummaryProps> = ({ propertyId = 'pr
             <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
                     <div>
-                        <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide">Total Revenue</h2>
+                        <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+                            Total Revenue {data.property_name ? `— ${data.property_name}` : ''}
+                        </h2>
                         <div className="flex items-baseline gap-2 mt-1">
                             <span className="text-3xl font-bold text-gray-900 tracking-tight">
                                 {data.currency} {displayTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -91,7 +106,7 @@ export const RevenueSummary: React.FC<RevenueSummaryProps> = ({ propertyId = 'pr
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100">
                     <div>
                         <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Property ID</p>
                         <p className="text-sm font-semibold text-gray-700 font-mono mt-1">{data.property_id}</p>
@@ -99,6 +114,10 @@ export const RevenueSummary: React.FC<RevenueSummaryProps> = ({ propertyId = 'pr
                     <div>
                         <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Reservations</p>
                         <p className="text-sm font-semibold text-gray-700 mt-1">{data.reservations_count} <span className="font-normal text-gray-400">bookings</span></p>
+                    </div>
+                    <div>
+                        <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Timezone</p>
+                        <p className="text-sm font-semibold text-gray-700 mt-1">{data.timezone || 'UTC'}</p>
                     </div>
                 </div>
 
